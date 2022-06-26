@@ -1,13 +1,24 @@
 package slayer.accessibility.service.flutter_accessibility_service;
 
+import static android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_BACK;
+import static android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_HOME;
+import static android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_RECENTS;
+
+import android.accessibilityservice.AccessibilityServiceInfo;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.net.Uri;
+import android.os.Build;
 import android.provider.Settings;
 import android.util.Log;
+import android.view.accessibility.AccessibilityManager;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
+
+import java.util.List;
 
 import io.flutter.embedding.engine.plugins.FlutterPlugin;
 import io.flutter.embedding.engine.plugins.activity.ActivityAware;
@@ -35,6 +46,8 @@ public class FlutterAccessibilityServicePlugin implements FlutterPlugin, Activit
 
     private Result pendingResult;
     final int REQUEST_CODE_FOR_ACCESSIBILITY = 167;
+    
+    private final String TAG = FlutterAccessibilityServicePlugin.class.getSimpleName();
 
     @Override
     public void onAttachedToEngine(@NonNull FlutterPluginBinding flutterPluginBinding) {
@@ -43,20 +56,64 @@ public class FlutterAccessibilityServicePlugin implements FlutterPlugin, Activit
         channel.setMethodCallHandler(this);
         eventChannel = new EventChannel(flutterPluginBinding.getBinaryMessenger(), EVENT_TAG);
         eventChannel.setStreamHandler(this);
-
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
     public void onMethodCall(@NonNull MethodCall call, @NonNull Result result) {
         pendingResult = result;
         if (call.method.equals("isAccessibilityPermissionEnabled")) {
             result.success(Utils.isAccessibilitySettingsOn(context));
-        } else if (call.method.equals("requestAccessibilityPermission")) {
+            return;
+        }
+        if (call.method.equals("requestAccessibilityPermission")) {
+            if (!checkOverlayPermissions()){
+                requestOverlayPermissions();
+                result.success(false);
+                return;
+            }
             Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
             mActivity.startActivityForResult(intent, REQUEST_CODE_FOR_ACCESSIBILITY);
-        } else {
-            result.notImplemented();
+            return;
         }
+        if (call.method.equals("startService")){
+            boolean res = startService();
+            result.success(res);
+        }
+        if (call.method.equals("checkServiceIsRunning")){
+            boolean res = checkServiceIsRunning();
+            result.success(res);
+            return;
+        }
+        if (call.method.equals("performGlobalAction")){
+            if (AccessibilityListener.getInstance() !=  null){
+                if (call.hasArgument("actionType")){
+                    String actionType = call.argument("actionType");
+                    if (actionType == null){
+                        result.success(false);
+                        return;
+                    }
+                    if (actionType.equals("GLOBAL_ACTION_HOME")){
+                        AccessibilityListener.getInstance().performGlobalAction(GLOBAL_ACTION_HOME);
+                        result.success(true);
+                        return;
+                    }
+                    if (actionType.equals("GLOBAL_ACTION_RECENTS")){
+                        AccessibilityListener.getInstance().performGlobalAction(GLOBAL_ACTION_RECENTS);
+                        result.success(true);
+                        return;
+                    }
+                    if (actionType.equals("GLOBAL_ACTION_BACK")){
+                        AccessibilityListener.getInstance().performGlobalAction(GLOBAL_ACTION_BACK);
+                        result.success(true);
+                        return;
+                    }
+                }
+            }
+            result.success(false);
+            return;
+        }
+        result.notImplemented();
     }
 
     @Override
@@ -67,18 +124,25 @@ public class FlutterAccessibilityServicePlugin implements FlutterPlugin, Activit
 
     @Override
     public void onListen(Object arguments, EventChannel.EventSink events) {
-        if (Utils.isAccessibilitySettingsOn(context)) {
-            /// Set up receiver
-            IntentFilter intentFilter = new IntentFilter();
-            intentFilter.addAction(AccessibilityListener.ACCESSIBILITY_INTENT);
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(AccessibilityListener.ACCESSIBILITY_INTENT);
 
-            accessibilityReceiver = new AccessibilityReceiver(events);
-            context.registerReceiver(accessibilityReceiver, intentFilter);
+        accessibilityReceiver = new AccessibilityReceiver(events);
+        context.registerReceiver(accessibilityReceiver, intentFilter);
+    }
 
-            /// Set up listener intent
+    public boolean startService(){
+        if (checkServiceIsRunning()){
+            return true;
+        }
+        /// Set up listener intent
+        try{
             Intent listenerIntent = new Intent(context, AccessibilityListener.class);
             context.startService(listenerIntent);
             Log.i("AccessibilityPlugin", "Started the accessibility tracking service.");
+            return true;
+        }catch (Exception e){
+            return false;
         }
     }
 
@@ -122,5 +186,35 @@ public class FlutterAccessibilityServicePlugin implements FlutterPlugin, Activit
     @Override
     public void onDetachedFromActivity() {
         this.mActivity = null;
+    }
+
+    boolean checkServiceIsRunning(){
+        AccessibilityManager am = (AccessibilityManager) this.mActivity.getSystemService(Context.ACCESSIBILITY_SERVICE);
+        List<AccessibilityServiceInfo> serviceInfoList = am.getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_GENERIC);
+        String id = null;
+        boolean isServiceOpen = false;
+        for (AccessibilityServiceInfo info : serviceInfoList) {
+            id = info.getId();
+            if (id.contains("slayer.accessibility.service.flutter_accessibility_service.AccessibilityListener")) {
+                isServiceOpen = true;
+                break;
+            }
+        }
+        if (!isServiceOpen) {
+            Log.d(TAG, "checkServiceIsRunning: xxx辅助功能未开启!");
+            return false;
+        }
+        return true;
+    }
+
+
+    @RequiresApi(api = Build.VERSION_CODES.M)
+    private boolean checkOverlayPermissions(){
+        return Settings.canDrawOverlays(context);
+    }
+
+    @RequiresApi(Build.VERSION_CODES.M)
+    private void requestOverlayPermissions(){
+        mActivity.startActivity(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + mActivity.getPackageName())));
     }
 }

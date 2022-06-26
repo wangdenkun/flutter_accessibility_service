@@ -7,6 +7,7 @@ import 'package:flutter_accessibility_service/accessibility_event.dart';
 import 'package:flutter_accessibility_service/flutter_accessibility_service.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const MyApp());
 }
 
@@ -18,8 +19,8 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  StreamSubscription<AccessibilityEvent>? _subscription;
-  List<AccessibilityEvent?> events = [];
+  StreamSubscription? _subscription;
+  List<Map<String,dynamic>> events = [];
 
   @override
   void initState() {
@@ -43,30 +44,59 @@ class _MyAppState extends State<MyApp> {
                   children: [
                     TextButton(
                       onPressed: () async {
-                        await FlutterAccessibilityService
-                            .requestAccessibilityPermission();
-                      },
-                      child: const Text("Request Permission"),
-                    ),
-                    const SizedBox(height: 20.0),
-                    TextButton(
-                      onPressed: () async {
-                        final bool res = await FlutterAccessibilityService
-                            .isAccessibilityPermissionEnabled();
-                        log("Is enabled: $res");
+                        final bool res = await FlutterAccessibilityService.isAccessibilityPermissionEnabled();
+                        debugPrint('---> Is enabled: $res');
                       },
                       child: const Text("Check Permission"),
                     ),
                     const SizedBox(height: 20.0),
+
+                    TextButton(
+                      onPressed: () async {
+                        await FlutterAccessibilityService.requestAccessibilityPermission();
+                      },
+                      child: const Text("Request Permission"),
+                    ),
+                    const SizedBox(height: 20.0),
+
+                    TextButton(
+                      onPressed: () async {
+                        final bool res = await FlutterAccessibilityService.isServiceRunning();
+                        debugPrint('---> Is Running res: ${res}');
+                      },
+                      child: const Text("Check Is Running"),
+                    ),
+                    const SizedBox(height: 20.0),
+
+                    TextButton(
+                      onPressed: () async {
+                        final bool res = await FlutterAccessibilityService.startService();
+                        debugPrint('---> Is Running res: ${res}');
+                      },
+                      child: const Text("startService"),
+                    ),
+                    const SizedBox(height: 20.0),
+
+
                     TextButton(
                       onPressed: () {
                         if (_subscription?.isPaused ?? false) {
                           _subscription?.resume();
                           return;
                         }
-                        _subscription = FlutterAccessibilityService.accessStream
-                            .listen((event) {
-                          log("$event");
+                        _subscription = FlutterAccessibilityService.eventStream.listen((event) {
+                          debugPrint('---> Accessibility event: ${event}');
+                          var eventType = event['eventType'];
+                          var keyCodeType = event['keyCodeType'];
+                          var keyCodeActionType = event['keyCodeActionType'];
+                          if (eventType == 'keyCode'){
+                            if (keyCodeType == 'KEYCODE_DPAD_CENTER' && keyCodeActionType == 'singleClick'){
+                              FlutterAccessibilityService.performGlobalAction(actionType: 'GLOBAL_ACTION_HOME');
+                            }
+                            if (keyCodeType == 'KEYCODE_DPAD_CENTER' && keyCodeActionType == 'doublePress'){
+                              FlutterAccessibilityService.performGlobalAction(actionType: 'GLOBAL_ACTION_RECENTS');
+                            }
+                          }
                           setState(() {
                             events.add(event);
                           });
@@ -81,6 +111,33 @@ class _MyAppState extends State<MyApp> {
                       },
                       child: const Text("Stop Stream"),
                     ),
+
+                    TextButton(
+                      onPressed: () async {
+                        final bool res = await FlutterAccessibilityService.performGlobalAction(actionType: 'GLOBAL_ACTION_RECENTS');
+                        debugPrint('---> Is Running res: ${res}');
+                      },
+                      child: const Text("RECENTS"),
+                    ),
+                    const SizedBox(height: 20.0),
+
+                    TextButton(
+                      onPressed: () async {
+                        final bool res = await FlutterAccessibilityService.performGlobalAction(actionType: 'GLOBAL_ACTION_HOME');
+                        debugPrint('---> Is Running res: ${res}');
+                      },
+                      child: const Text("HOME"),
+                    ),
+                    const SizedBox(height: 20.0),
+
+                    TextButton(
+                      onPressed: () async {
+                        final bool res = await FlutterAccessibilityService.performGlobalAction(actionType: 'GLOBAL_ACTION_BACK');
+                        debugPrint('---> Is Running res: ${res}');
+                      },
+                      child: const Text("BACK"),
+                    ),
+                    const SizedBox(height: 20.0),
                   ],
                 ),
               ),
@@ -89,8 +146,8 @@ class _MyAppState extends State<MyApp> {
                   shrinkWrap: true,
                   itemCount: events.length,
                   itemBuilder: (_, index) => ListTile(
-                    title: Text(events[index]!.packageName!),
-                    subtitle: Text(events[index]!.capturedText ?? ""),
+                    title: Text(events[index].toString()),
+                    // subtitle: Text(events[index]!.capturedText ?? ""),
                   ),
                 ),
               )

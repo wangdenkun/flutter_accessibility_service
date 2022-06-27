@@ -49,6 +49,11 @@ android {
             signingConfig signingConfigs.debug
         }
     }
+    android.applicationVariants.all { variant ->
+        variant.outputs.all {
+            outputFileName = "flutter_accessibility_service_${buildType.name}_V${versionName}.${versionCode}.apk"
+        }
+    }
 }
 
 flutter {

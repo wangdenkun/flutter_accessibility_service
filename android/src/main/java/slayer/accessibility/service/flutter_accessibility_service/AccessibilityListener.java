@@ -1,16 +1,12 @@
 package slayer.accessibility.service.flutter_accessibility_service;
 
 import android.accessibilityservice.AccessibilityService;
-import android.accessibilityservice.AccessibilityServiceInfo;
 import android.content.Intent;
 import android.graphics.Rect;
-import android.os.Build;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
-import android.view.accessibility.AccessibilityWindowInfo;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import android.os.Handler;
@@ -38,7 +34,7 @@ public class AccessibilityListener extends AccessibilityService {
     public static String ACCESSIBILITY_KEY_CODE_TYPE = "keyCodeType";
     public static String ACCESSIBILITY_KEY_CODE_ACTION_TYPE = "keyCodeActionType";
 
-    public String TAG = AccessibilityListener.class.getSimpleName();
+    public String TAG = "--->" + AccessibilityListener.class.getSimpleName();
 
 
     public static AccessibilityListener getInstance(){
@@ -48,32 +44,28 @@ public class AccessibilityListener extends AccessibilityService {
     @Override
     public void onCreate() {
         super.onCreate();
-        Log.d(TAG, "onCreate:");
-//        performGlobalAction(GLOBAL_ACTION_HOME);
-//        performGlobalAction(GLOBAL_ACTION_RECENTS);
-//        performGlobalAction(GLOBAL_ACTION_BACK);
+        Log.i(TAG, "onCreate");
     }
 
     // 这个地方调用了 才说明真正起作用了
     @Override
     protected void onServiceConnected() {
-        Log.d(TAG, "onServiceConnected: ");
+        Log.i(TAG, "onServiceConnected");
         accessibilityListener = this;
         super.onServiceConnected();
-        Intent intent = new Intent(ACCESSIBILITY_INTENT);
-        intent.putExtra(ACCESSIBILITY_EVENT_TYPE,"serviceStarted");
-        intent.putExtra(ACCESSIBILITY_KEY_CODE_TYPE,"");
-        intent.putExtra(ACCESSIBILITY_KEY_CODE_ACTION_TYPE,"");
-        sendBroadcast(intent);
+//        Intent intent = new Intent(ACCESSIBILITY_INTENT);
+//        intent.putExtra(ACCESSIBILITY_EVENT_TYPE,"serviceStarted");
+//        intent.putExtra(ACCESSIBILITY_KEY_CODE_TYPE,"");
+//        intent.putExtra(ACCESSIBILITY_KEY_CODE_ACTION_TYPE,"");
+//        sendBroadcast(intent);
+        sendEventDataToReceiver("serviceStarted","","");
     }
 
     @Override
     public boolean onUnbind(Intent intent) {
+        Log.i(TAG, "onUnbind " + intent.toString());
         accessibilityListener = null;
-        intent.putExtra(ACCESSIBILITY_EVENT_TYPE,"serviceStopped");
-        intent.putExtra(ACCESSIBILITY_KEY_CODE_TYPE,"");
-        intent.putExtra(ACCESSIBILITY_KEY_CODE_ACTION_TYPE,"");
-        sendBroadcast(intent);
+        sendEventDataToReceiver("serviceStopped","","");
         return super.onUnbind(intent);
     }
 
@@ -88,9 +80,15 @@ public class AccessibilityListener extends AccessibilityService {
     private int currentKeyCode = 0;
     private static Boolean isDoubleClick = false;
     private static Boolean isLongClick = false;
+
+    //========= 旋钮事件处理 =========
     @Override
     protected boolean onKeyEvent(KeyEvent event) {
         int keycode = event.getKeyCode();
+        // 只关注需要管理旋钮的三种事件
+        if (keycode != KeyEvent.KEYCODE_DPAD_UP && keycode != KeyEvent.KEYCODE_DPAD_CENTER && keycode != KeyEvent.KEYCODE_DPAD_DOWN) {
+            return super.onKeyEvent(event);
+        }
         // 有不同按键按下，取消长按、短按的判断
         if (currentKeyCode != keycode) {
             removeLongPressCallback();
@@ -115,12 +113,8 @@ public class AccessibilityListener extends AccessibilityService {
     private void longPress(int keycode) {
         // 只有按下按钮才算长按
         if (keycode == KeyEvent.KEYCODE_DPAD_CENTER){
-            Log.i(TAG, "---> doublePress 长按旋钮--" + keycode);
-            Intent intent = new Intent(ACCESSIBILITY_INTENT);
-            intent.putExtra(ACCESSIBILITY_EVENT_TYPE,"keyCode");
-            intent.putExtra(ACCESSIBILITY_KEY_CODE_TYPE,"KEYCODE_DPAD_CENTER");
-            intent.putExtra(ACCESSIBILITY_KEY_CODE_ACTION_TYPE,"longPress");
-            sendBroadcast(intent);
+            Log.i(TAG, "doublePress 长按旋钮 " + keycode);
+            sendEventDataToReceiver("keyCode","KEYCODE_DPAD_CENTER","longPress");
         }
     }
     private void singleClick(int keycode) {
@@ -129,22 +123,14 @@ public class AccessibilityListener extends AccessibilityService {
         if (keycode == KeyEvent.KEYCODE_DPAD_CENTER) keyCodeType = "KEYCODE_DPAD_CENTER";
         if (keycode == KeyEvent.KEYCODE_DPAD_UP) keyCodeType = "KEYCODE_DPAD_UP";
         if (keycode == KeyEvent.KEYCODE_DPAD_DOWN) keyCodeType = "KEYCODE_DPAD_DOWN";
-        Log.i(TAG, "---> singleClick 单击事件--" + keycode + keycode);
-        Intent intent = new Intent(ACCESSIBILITY_INTENT);
-        intent.putExtra(ACCESSIBILITY_EVENT_TYPE,"keyCode");
-        intent.putExtra(ACCESSIBILITY_KEY_CODE_TYPE,keyCodeType);
-        intent.putExtra(ACCESSIBILITY_KEY_CODE_ACTION_TYPE,"singleClick");
-        sendBroadcast(intent);
+        Log.i(TAG, "singleClick 单击事件 " + keycode);
+        sendEventDataToReceiver("keyCode",keyCodeType,"singleClick");
     }
     private void doublePress(int keycode) {
         //  只有快速的两次按下才算双击
         if (keycode == KeyEvent.KEYCODE_DPAD_CENTER){
-            Log.i(TAG, "---> doublePress 双击旋钮--" + keycode);
-            Intent intent = new Intent(ACCESSIBILITY_INTENT);
-            intent.putExtra(ACCESSIBILITY_EVENT_TYPE,"keyCode");
-            intent.putExtra(ACCESSIBILITY_KEY_CODE_TYPE,"KEYCODE_DPAD_CENTER");
-            intent.putExtra(ACCESSIBILITY_KEY_CODE_ACTION_TYPE,"doublePress");
-            sendBroadcast(intent);
+            Log.i(TAG, "doublePress 双击旋钮 " + keycode);
+            sendEventDataToReceiver("keyCode","KEYCODE_DPAD_CENTER","doublePress");
         }
     }
 
@@ -217,8 +203,20 @@ public class AccessibilityListener extends AccessibilityService {
         }
     }
 
-
-    /**========= 无障碍访问功能 暂时用不到 =========**/
+    /**
+     * service拦截到的keyEvent -> AccessibilityReceiver -> flutter platform channel -> flutter
+     * @param eventType 事件类型
+     * @param codeType  KeyEvent类型
+     * @param actionType KeyEvent操作类型
+     */
+    private void sendEventDataToReceiver(String eventType,String codeType,String actionType){
+        Intent intent = new Intent(ACCESSIBILITY_INTENT);
+        intent.putExtra(ACCESSIBILITY_EVENT_TYPE,eventType);
+        intent.putExtra(ACCESSIBILITY_KEY_CODE_TYPE,codeType);
+        intent.putExtra(ACCESSIBILITY_KEY_CODE_ACTION_TYPE,actionType);
+        sendBroadcast(intent);
+    }
+    //========= 无障碍访问功能 暂时用不到 =========
     @Override
     public void onAccessibilityEvent(AccessibilityEvent accessibilityEvent) {
 //

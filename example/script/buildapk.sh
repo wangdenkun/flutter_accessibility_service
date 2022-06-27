@@ -1,0 +1,1 @@
+fvm flutter build apk --release && open ./build/app/outputs/apk/release/

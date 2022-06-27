@@ -25,8 +25,32 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
+    _startEventListen();
   }
 
+  _startEventListen(){
+    if (_subscription?.isPaused ?? false) {
+      _subscription?.resume();
+      return;
+    }
+    _subscription = FlutterAccessibilityService.eventStream.listen((event) {
+      debugPrint('---> Accessibility event: ${event}');
+      var eventType = event['eventType'];
+      var keyCodeType = event['keyCodeType'];
+      var keyCodeActionType = event['keyCodeActionType'];
+      if (eventType == 'keyCode'){
+        if (keyCodeType == 'KEYCODE_DPAD_CENTER' && keyCodeActionType == 'singleClick'){
+          FlutterAccessibilityService.performGlobalAction(actionType: 'GLOBAL_ACTION_HOME');
+        }
+        if (keyCodeType == 'KEYCODE_DPAD_CENTER' && keyCodeActionType == 'doublePress'){
+          FlutterAccessibilityService.performGlobalAction(actionType: 'GLOBAL_ACTION_RECENTS');
+        }
+      }
+      setState(() {
+        events.add(event);
+      });
+    });
+  }
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -79,29 +103,7 @@ class _MyAppState extends State<MyApp> {
 
 
                     TextButton(
-                      onPressed: () {
-                        if (_subscription?.isPaused ?? false) {
-                          _subscription?.resume();
-                          return;
-                        }
-                        _subscription = FlutterAccessibilityService.eventStream.listen((event) {
-                          debugPrint('---> Accessibility event: ${event}');
-                          var eventType = event['eventType'];
-                          var keyCodeType = event['keyCodeType'];
-                          var keyCodeActionType = event['keyCodeActionType'];
-                          if (eventType == 'keyCode'){
-                            if (keyCodeType == 'KEYCODE_DPAD_CENTER' && keyCodeActionType == 'singleClick'){
-                              FlutterAccessibilityService.performGlobalAction(actionType: 'GLOBAL_ACTION_HOME');
-                            }
-                            if (keyCodeType == 'KEYCODE_DPAD_CENTER' && keyCodeActionType == 'doublePress'){
-                              FlutterAccessibilityService.performGlobalAction(actionType: 'GLOBAL_ACTION_RECENTS');
-                            }
-                          }
-                          setState(() {
-                            events.add(event);
-                          });
-                        });
-                      },
+                      onPressed: _startEventListen,
                       child: const Text("Start Stream"),
                     ),
                     const SizedBox(height: 20.0),

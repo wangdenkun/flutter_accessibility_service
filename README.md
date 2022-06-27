@@ -1,5 +1,16 @@
 # flutter_accessibility_service
 
+### 运行环境
+* flutter2.10.5
+### 关于用AS运行example报错
+Didn't find class "androidx.window.sidecar.SidecarInterface$SidecarCallback"  
+参考[flutter issue](https://github.com/flutter/flutter/issues/99404)还是没能修复，但是好想不影响flutter工程的运行
+
+### 新增特性
+* 获取service运行状态(注意 和权限两码事，虽然有权限但是服务也不一定正常运行 有可能被系统干掉)
+* 获取无障碍访问权限后，可以实现"三大金刚键"功能。
+* 可以提前在flutter侧注册监听以便获取service运行状态(如影设备进入授权页面后 无法通过返回按钮返回到应用，可以在得知服务成功运行消息后处理旋钮事件)
+
 a plugin for interacting with Accessibility Service in Android.
 
 Accessibility services are intended to assist users with disabilities in using Android devices and apps, or I can say to get android os events like keyboard key press events or notification received events etc.

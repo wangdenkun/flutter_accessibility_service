@@ -44,7 +44,8 @@ public class FlutterAccessibilityServicePlugin implements FlutterPlugin, Activit
     private Context context;
     private Activity mActivity;
 
-    private Result pendingResult;
+//    private Result pendingResult;
+    private Result pendingResultOfAccessibility;
     final int REQUEST_CODE_FOR_ACCESSIBILITY = 167;
     
     private final String TAG = FlutterAccessibilityServicePlugin.class.getSimpleName();
@@ -61,17 +62,17 @@ public class FlutterAccessibilityServicePlugin implements FlutterPlugin, Activit
     @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
     public void onMethodCall(@NonNull MethodCall call, @NonNull Result result) {
-        pendingResult = result;
         if (call.method.equals("isAccessibilityPermissionEnabled")) {
             result.success(Utils.isAccessibilitySettingsOn(context));
             return;
         }
         if (call.method.equals("requestAccessibilityPermission")) {
-            if (!checkOverlayPermissions()){
-                requestOverlayPermissions();
-                result.success(false);
-                return;
-            }
+//            if (!checkOverlayPermissions()){
+//                requestOverlayPermissions();
+//                result.success(false);
+//                return;
+//            }
+            pendingResultOfAccessibility = result;
             Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
             mActivity.startActivityForResult(intent, REQUEST_CODE_FOR_ACCESSIBILITY);
             return;
@@ -79,6 +80,7 @@ public class FlutterAccessibilityServicePlugin implements FlutterPlugin, Activit
         if (call.method.equals("startService")){
             boolean res = startService();
             result.success(res);
+            return;
         }
         if (call.method.equals("checkServiceIsRunning")){
             boolean res = checkServiceIsRunning();
@@ -154,16 +156,18 @@ public class FlutterAccessibilityServicePlugin implements FlutterPlugin, Activit
 
     @Override
     public boolean onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (pendingResultOfAccessibility == null) return false;
         if (requestCode == REQUEST_CODE_FOR_ACCESSIBILITY) {
             if (resultCode == Activity.RESULT_OK) {
-                pendingResult.success(true);
+                pendingResultOfAccessibility.success(true);
             } else if (resultCode == Activity.RESULT_CANCELED) {
-                pendingResult.success(Utils.isAccessibilitySettingsOn(context));
+                pendingResultOfAccessibility.success(Utils.isAccessibilitySettingsOn(context));
             } else {
-                pendingResult.success(false);
+                pendingResultOfAccessibility.success(false);
             }
             return true;
         }
+        pendingResultOfAccessibility = null;
         return false;
     }
 
@@ -208,13 +212,13 @@ public class FlutterAccessibilityServicePlugin implements FlutterPlugin, Activit
     }
 
 
-    @RequiresApi(api = Build.VERSION_CODES.M)
-    private boolean checkOverlayPermissions(){
-        return Settings.canDrawOverlays(context);
-    }
-
-    @RequiresApi(Build.VERSION_CODES.M)
-    private void requestOverlayPermissions(){
-        mActivity.startActivity(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + mActivity.getPackageName())));
-    }
+//    @RequiresApi(api = Build.VERSION_CODES.M)
+//    private boolean checkOverlayPermissions(){
+//        return Settings.canDrawOverlays(context);
+//    }
+//
+//    @RequiresApi(Build.VERSION_CODES.M)
+//    private void requestOverlayPermissions(){
+//        mActivity.startActivity(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + mActivity.getPackageName())));
+//    }
 }

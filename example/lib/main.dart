@@ -21,7 +21,7 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   StreamSubscription? _subscription;
   List<Map<String,dynamic>> events = [];
-
+  final ScrollController _scrollController = ScrollController();
   @override
   void initState() {
     super.initState();
@@ -46,6 +46,15 @@ class _MyAppState extends State<MyApp> {
           FlutterAccessibilityService.performGlobalAction(actionType: 'GLOBAL_ACTION_RECENTS');
         }
       }
+      WidgetsBinding.instance?.addPostFrameCallback((timeStamp) {
+        if (mounted){
+          _scrollController.animateTo(
+            _scrollController.position.maxScrollExtent,
+            duration: const Duration(seconds: 1),
+            curve: Curves.linear,
+          );
+        }
+      });
       setState(() {
         events.add(event);
       });
@@ -147,6 +156,7 @@ class _MyAppState extends State<MyApp> {
                 child: ListView.builder(
                   shrinkWrap: true,
                   itemCount: events.length,
+                  controller: _scrollController,
                   itemBuilder: (_, index) => ListTile(
                     title: Text(events[index].toString()),
                     // subtitle: Text(events[index]!.capturedText ?? ""),

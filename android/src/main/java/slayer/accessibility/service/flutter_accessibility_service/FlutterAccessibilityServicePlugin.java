@@ -156,8 +156,8 @@ public class FlutterAccessibilityServicePlugin implements FlutterPlugin, Activit
 
     @Override
     public boolean onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (pendingResultOfAccessibility == null) return false;
         if (requestCode == REQUEST_CODE_FOR_ACCESSIBILITY) {
+            if (pendingResultOfAccessibility == null) return true;
             if (resultCode == Activity.RESULT_OK) {
                 pendingResultOfAccessibility.success(true);
             } else if (resultCode == Activity.RESULT_CANCELED) {
@@ -165,9 +165,9 @@ public class FlutterAccessibilityServicePlugin implements FlutterPlugin, Activit
             } else {
                 pendingResultOfAccessibility.success(false);
             }
+            pendingResultOfAccessibility = null;
             return true;
         }
-        pendingResultOfAccessibility = null;
         return false;
     }
 
@@ -205,7 +205,7 @@ public class FlutterAccessibilityServicePlugin implements FlutterPlugin, Activit
             }
         }
         if (!isServiceOpen) {
-            Log.d(TAG, "checkServiceIsRunning: xxx辅助功能未开启!");
+            Log.d(TAG, "checkServiceIsRunning:  无障碍访问功能未开启!");
             return false;
         }
         return true;

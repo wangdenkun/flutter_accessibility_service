@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:developer';
 
+import 'package:bundle_id_launch/bundle_id_launch.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_accessibility_service/accessibility_event.dart';
 
 import 'package:flutter_accessibility_service/flutter_accessibility_service.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,8 +28,18 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
     _startEventListen();
+    _prepare();
   }
 
+  late PackageInfo _packageInfo;
+  Future<bool> _prepare() async{
+    _packageInfo = await PackageInfo.fromPlatform();
+    return true;
+  }
+  Future<bool> _launchSelf() async{
+    var packageBundleId = _packageInfo.packageName;
+    return BundleIdLaunch.launch(bundleId: packageBundleId);
+  }
   _startEventListen(){
     if (_subscription?.isPaused ?? false) {
       _subscription?.resume();
@@ -45,6 +57,10 @@ class _MyAppState extends State<MyApp> {
         if (keyCodeType == 'KEYCODE_DPAD_CENTER' && keyCodeActionType == 'doublePress'){
           FlutterAccessibilityService.performGlobalAction(actionType: 'GLOBAL_ACTION_RECENTS');
         }
+      }
+      if (eventType == 'serviceStarted'){
+        debugPrint('---> _MyAppState._startEventListen serviceStarted');
+        _launchSelf();
       }
       WidgetsBinding.instance?.addPostFrameCallback((timeStamp) {
         if (mounted){
@@ -86,7 +102,8 @@ class _MyAppState extends State<MyApp> {
 
                     TextButton(
                       onPressed: () async {
-                        await FlutterAccessibilityService.requestAccessibilityPermission();
+                        var res = await FlutterAccessibilityService.requestAccessibilityPermission();
+                        debugPrint('---> requestAccessibilityPermission res: ${res}');
                       },
                       child: const Text("Request Permission"),
                     ),

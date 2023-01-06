@@ -1,5 +1,6 @@
 package slayer.accessibility.service.flutter_accessibility_service;
 
+import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -11,9 +12,11 @@ import io.flutter.plugin.common.EventChannel;
 public class AccessibilityReceiver extends BroadcastReceiver {
 
     private EventChannel.EventSink eventSink;
+    private FlutterAccessibilityServicePlugin plugin;
 
-    public AccessibilityReceiver(EventChannel.EventSink eventSink) {
+    public AccessibilityReceiver(EventChannel.EventSink eventSink,FlutterAccessibilityServicePlugin plugin) {
         this.eventSink = eventSink;
+        this.plugin = plugin;
     }
 
     @Override
@@ -33,9 +36,13 @@ public class AccessibilityReceiver extends BroadcastReceiver {
 //        data.put("windowType", intent.getIntExtra(AccessibilityListener.ACCESSIBILITY_WINDOW_TYPE, -1));
 //        data.put("screenBounds", intent.getSerializableExtra(AccessibilityListener.ACCESSIBILITY_SCREEN_BOUNDS));
 //        data.put("nodesText" , intent.getStringArrayListExtra(AccessibilityListener.ACCESSIBILITY_NODES_TEXT));
-        data.put(AccessibilityListener.ACCESSIBILITY_EVENT_TYPE, intent.getStringExtra(AccessibilityListener.ACCESSIBILITY_EVENT_TYPE));
+        String eventType = intent.getStringExtra(AccessibilityListener.ACCESSIBILITY_EVENT_TYPE);
+        data.put(AccessibilityListener.ACCESSIBILITY_EVENT_TYPE, eventType);
         data.put(AccessibilityListener.ACCESSIBILITY_KEY_CODE_TYPE, intent.getStringExtra(AccessibilityListener.ACCESSIBILITY_KEY_CODE_TYPE));
         data.put(AccessibilityListener.ACCESSIBILITY_KEY_CODE_ACTION_TYPE, intent.getStringExtra(AccessibilityListener.ACCESSIBILITY_KEY_CODE_ACTION_TYPE));
         eventSink.success(data);
+        if (eventType.equals("serviceStarted")) {
+            plugin.onActivityResult(FlutterAccessibilityServicePlugin.REQUEST_CODE_FOR_ACCESSIBILITY, Activity.RESULT_OK,new Intent());
+        }
     }
 }

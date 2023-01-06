@@ -47,7 +47,14 @@ public class AccessibilityListener extends AccessibilityService {
         Log.i(TAG, "onCreate");
     }
 
-    // 这个地方调用了 才说明真正起作用了
+    /**
+     *  这个地方调用了 才说明真正起作用了
+     *  插件申请权限的整体回调流程：
+     *  FlutterAccessibilityServicePlugin.requestAccessibilityPermission ->
+     *  AccessibilityListener.onServiceConnected send  'serviceStarted' event ->
+     *  AccessibilityReceiver.onReceive get 'serviceStarted' event->
+     *  FlutterAccessibilityServicePlugin.onActivityResult
+      */
     @Override
     protected void onServiceConnected() {
         Log.i(TAG, "onServiceConnected");

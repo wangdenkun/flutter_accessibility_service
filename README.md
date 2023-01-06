@@ -4,7 +4,7 @@
 * flutter2.10.5
 ### 关于用AS运行example报错
 Didn't find class "androidx.window.sidecar.SidecarInterface$SidecarCallback"  
-参考[flutter issue](https://github.com/flutter/flutter/issues/99404)还是没能修复，但是好想不影响flutter工程的运行
+参考[flutter issue](https://github.com/flutter/flutter/issues/99404)还是没能修复，但是好像不影响flutter工程的运行
 
 ### 新增特性
 * 获取service运行状态(注意 和权限两码事，虽然有权限但是服务也不一定正常运行 有可能被系统干掉)

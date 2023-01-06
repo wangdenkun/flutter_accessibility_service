@@ -6,6 +6,7 @@ import static android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_RE
 
 import android.accessibilityservice.AccessibilityServiceInfo;
 import android.app.Activity;
+import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -46,7 +47,7 @@ public class FlutterAccessibilityServicePlugin implements FlutterPlugin, Activit
 
 //    private Result pendingResult;
     private Result pendingResultOfAccessibility;
-    final int REQUEST_CODE_FOR_ACCESSIBILITY = 167;
+    static final int REQUEST_CODE_FOR_ACCESSIBILITY = 167;
     
     private final String TAG = FlutterAccessibilityServicePlugin.class.getSimpleName();
 
@@ -67,11 +68,6 @@ public class FlutterAccessibilityServicePlugin implements FlutterPlugin, Activit
             return;
         }
         if (call.method.equals("requestAccessibilityPermission")) {
-//            if (!checkOverlayPermissions()){
-//                requestOverlayPermissions();
-//                result.success(false);
-//                return;
-//            }
             pendingResultOfAccessibility = result;
             Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
             mActivity.startActivityForResult(intent, REQUEST_CODE_FOR_ACCESSIBILITY);
@@ -129,7 +125,7 @@ public class FlutterAccessibilityServicePlugin implements FlutterPlugin, Activit
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(AccessibilityListener.ACCESSIBILITY_INTENT);
 
-        accessibilityReceiver = new AccessibilityReceiver(events);
+        accessibilityReceiver = new AccessibilityReceiver(events,this);
         context.registerReceiver(accessibilityReceiver, intentFilter);
     }
 
@@ -193,13 +189,13 @@ public class FlutterAccessibilityServicePlugin implements FlutterPlugin, Activit
     }
 
     boolean checkServiceIsRunning(){
-        AccessibilityManager am = (AccessibilityManager) this.mActivity.getSystemService(Context.ACCESSIBILITY_SERVICE);
-        List<AccessibilityServiceInfo> serviceInfoList = am.getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_GENERIC);
+        ActivityManager am = (ActivityManager) this.mActivity.getSystemService(Context.ACTIVITY_SERVICE);
+        List<ActivityManager.RunningServiceInfo> serviceInfoList = am.getRunningServices(1000);
         String id = null;
         boolean isServiceOpen = false;
-        for (AccessibilityServiceInfo info : serviceInfoList) {
-            id = info.getId();
-            if (id.contains("slayer.accessibility.service.flutter_accessibility_service.AccessibilityListener")) {
+        for (ActivityManager.RunningServiceInfo info : serviceInfoList) {
+            id = info.service.getClassName();
+            if (id.contains(AccessibilityListener.class.getName())) {
                 isServiceOpen = true;
                 break;
             }

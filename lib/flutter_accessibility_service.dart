@@ -52,6 +52,8 @@ class FlutterAccessibilityService {
     }
   }
 
+  /// 理论上将 不应该手动开启服务 应该是给了权限之后 由系统自动开启服务
+  @deprecated('理论上将 不应该手动开启服务 应该是给了权限之后 由系统自动开启服务')
   static Future<bool> startService() async {
     try {
       return await _methodeChannel.invokeMethod('startService');

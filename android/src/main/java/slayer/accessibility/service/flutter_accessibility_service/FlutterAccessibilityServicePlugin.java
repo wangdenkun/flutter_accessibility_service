@@ -58,6 +58,11 @@ public class FlutterAccessibilityServicePlugin implements FlutterPlugin, Activit
         channel.setMethodCallHandler(this);
         eventChannel = new EventChannel(flutterPluginBinding.getBinaryMessenger(), EVENT_TAG);
         eventChannel.setStreamHandler(this);
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(AccessibilityListener.ACCESSIBILITY_INTENT);
+        accessibilityReceiver = new AccessibilityReceiver(null,this);
+        context.registerReceiver(accessibilityReceiver, intentFilter);
+
     }
 
     @RequiresApi(api = Build.VERSION_CODES.M)
@@ -68,6 +73,10 @@ public class FlutterAccessibilityServicePlugin implements FlutterPlugin, Activit
             return;
         }
         if (call.method.equals("requestAccessibilityPermission")) {
+            if (checkServiceIsRunning()){
+                result.success(true);
+                return;
+            }
             pendingResultOfAccessibility = result;
             Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
             mActivity.startActivityForResult(intent, REQUEST_CODE_FOR_ACCESSIBILITY);
@@ -122,11 +131,9 @@ public class FlutterAccessibilityServicePlugin implements FlutterPlugin, Activit
 
     @Override
     public void onListen(Object arguments, EventChannel.EventSink events) {
-        IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(AccessibilityListener.ACCESSIBILITY_INTENT);
-
-        accessibilityReceiver = new AccessibilityReceiver(events,this);
-        context.registerReceiver(accessibilityReceiver, intentFilter);
+        if (accessibilityReceiver != null){
+            accessibilityReceiver.eventSink = events;
+        }
     }
 
     public boolean startService(){

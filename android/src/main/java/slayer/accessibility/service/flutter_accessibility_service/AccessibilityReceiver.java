@@ -11,11 +11,13 @@ import io.flutter.plugin.common.EventChannel;
 
 public class AccessibilityReceiver extends BroadcastReceiver {
 
-    private EventChannel.EventSink eventSink;
+    public EventChannel.EventSink eventSink;
     private FlutterAccessibilityServicePlugin plugin;
+    public static AccessibilityReceiver instance;
 
     public AccessibilityReceiver(EventChannel.EventSink eventSink,FlutterAccessibilityServicePlugin plugin) {
-        this.eventSink = eventSink;
+        instance = this;
+        if(eventSink != null) this.eventSink = eventSink;
         this.plugin = plugin;
     }
 
@@ -40,7 +42,7 @@ public class AccessibilityReceiver extends BroadcastReceiver {
         data.put(AccessibilityListener.ACCESSIBILITY_EVENT_TYPE, eventType);
         data.put(AccessibilityListener.ACCESSIBILITY_KEY_CODE_TYPE, intent.getStringExtra(AccessibilityListener.ACCESSIBILITY_KEY_CODE_TYPE));
         data.put(AccessibilityListener.ACCESSIBILITY_KEY_CODE_ACTION_TYPE, intent.getStringExtra(AccessibilityListener.ACCESSIBILITY_KEY_CODE_ACTION_TYPE));
-        eventSink.success(data);
+        if (eventSink != null) eventSink.success(data);
         if (eventType.equals("serviceStarted")) {
             plugin.onActivityResult(FlutterAccessibilityServicePlugin.REQUEST_CODE_FOR_ACCESSIBILITY, Activity.RESULT_OK,new Intent());
         }

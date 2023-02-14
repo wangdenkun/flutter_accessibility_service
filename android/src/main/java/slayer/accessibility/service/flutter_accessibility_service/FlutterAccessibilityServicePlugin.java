@@ -51,6 +51,11 @@ public class FlutterAccessibilityServicePlugin implements FlutterPlugin, Activit
     
     private final String TAG = FlutterAccessibilityServicePlugin.class.getSimpleName();
 
+    /**
+     * 启动了服务才算注册成功 才能取消注册
+     */
+    private Boolean hasRegisterReceiver = false;
+
     @Override
     public void onAttachedToEngine(@NonNull FlutterPluginBinding flutterPluginBinding) {
         context = flutterPluginBinding.getApplicationContext();
@@ -62,7 +67,6 @@ public class FlutterAccessibilityServicePlugin implements FlutterPlugin, Activit
         intentFilter.addAction(AccessibilityListener.ACCESSIBILITY_INTENT);
         accessibilityReceiver = new AccessibilityReceiver(null,this);
         context.registerReceiver(accessibilityReceiver, intentFilter);
-
     }
 
     @RequiresApi(api = Build.VERSION_CODES.M)
@@ -138,6 +142,7 @@ public class FlutterAccessibilityServicePlugin implements FlutterPlugin, Activit
 
     public boolean startService(){
         if (checkServiceIsRunning()){
+            hasRegisterReceiver = true;
             return true;
         }
         /// Set up listener intent
@@ -145,6 +150,7 @@ public class FlutterAccessibilityServicePlugin implements FlutterPlugin, Activit
             Intent listenerIntent = new Intent(context, AccessibilityListener.class);
             context.startService(listenerIntent);
             Log.i("AccessibilityPlugin", "Started the accessibility tracking service.");
+            hasRegisterReceiver = true;
             return true;
         }catch (Exception e){
             return false;
@@ -153,7 +159,11 @@ public class FlutterAccessibilityServicePlugin implements FlutterPlugin, Activit
 
     @Override
     public void onCancel(Object arguments) {
-        context.unregisterReceiver(accessibilityReceiver);
+        Log.i("AccessibilityPlugin", "hasRegisterReceiver: " + hasRegisterReceiver);
+        if (hasRegisterReceiver) {
+            context.unregisterReceiver(accessibilityReceiver);
+            hasRegisterReceiver = false;
+        }
         accessibilityReceiver = null;
     }
 

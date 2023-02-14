@@ -159,7 +159,7 @@ public class FlutterAccessibilityServicePlugin implements FlutterPlugin, Activit
 
     @Override
     public void onCancel(Object arguments) {
-        Log.i("AccessibilityPlugin", "hasRegisterReceiver: " + hasRegisterReceiver);
+//        Log.i("AccessibilityPlugin", "hasRegisterReceiver: " + hasRegisterReceiver);
         if (hasRegisterReceiver) {
             context.unregisterReceiver(accessibilityReceiver);
             hasRegisterReceiver = false;
